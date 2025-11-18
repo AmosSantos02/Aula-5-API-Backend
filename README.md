@@ -29,3 +29,15 @@ Como Executar Localmente
 Clone o repositório
 
 Instale as dependências:
+
+npm install
+
+Inicie o servidor:
+
+npm start
+
+A API ficará disponível em http://localhost:3000 (ou porta configurada)
+
+Deploy no Render
+
+O backend está publicado no Render, permitindo consumo público do endpoint pela aplicação frontend.
