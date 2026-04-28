@@ -1,117 +1,97 @@
+// Importa o Express, Body-Parser e FS
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data.json');
+const PORT = 3000;
+const FILE = 'data.json';
 
-// Middleware
+// Permite receber JSON
 app.use(bodyParser.json());
 
+// Libera acesso externo (CORS)
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*'); // ou especifique a origem do React
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    next();
-  });
-  
-// Helper functions
-const readNotes = () => {
+  res.header('Access-Control-Allow-Origin', '*');
+  next();
+});
+
+// Função para ler arquivo
+function readNotes() {
   try {
-    const rawData = fs.readFileSync(DATA_FILE);
-    return JSON.parse(rawData);
-  } catch (error) {
+    const data = fs.readFileSync(FILE);
+    return JSON.parse(data);
+  } catch {
     return [];
   }
-};
+}
 
-const writeNotes = (notes) => {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(notes, null, 2));
-};
+// Função para salvar arquivo
+function saveNotes(notes) {
+  fs.writeFileSync(FILE, JSON.stringify(notes, null, 2));
+}
 
-// Rotas CRUD para Notas
+// ====================
+// GET - Listar notas
+// ====================
 app.get('/api/notes', (req, res) => {
   const notes = readNotes();
   res.json(notes);
 });
 
+// ====================
+// POST - Criar nota
+// ====================
 app.post('/api/notes', (req, res) => {
   const notes = readNotes();
-  const { titulo, texto } = req.body;
-  
-  if (!titulo || !texto) {
-    return res.status(400).json({ error: 'Título e texto são obrigatórios' });
-  }
 
-  const newNote = {
-    id: Date.now().toString(), // Adicionando ID único
-    titulo,
-    texto,
-    criadoEm: new Date().toISOString()
+  const novaNota = {
+    id: Date.now().toString(),
+    titulo: req.body.titulo,
+    texto: req.body.texto
   };
-  
-  notes.push(newNote);
-  writeNotes(notes);
-  res.status(201).json(newNote);
+
+  notes.push(novaNota);
+  saveNotes(notes);
+
+  res.json(novaNota);
 });
 
-app.get('/api/notes/:id', (req, res) => {
-  const notes = readNotes();
-  const note = notes.find(n => n.id === req.params.id);
-  
-  if (!note) {
-    return res.status(404).json({ error: 'Nota não encontrada' });
-  }
-  
-  res.json(note);
-});
-
+// ====================
+// PUT - Editar nota
+// ====================
 app.put('/api/notes/:id', (req, res) => {
   const notes = readNotes();
+
   const index = notes.findIndex(n => n.id === req.params.id);
-  
-  if (index === -1) {
-    return res.status(404).json({ error: 'Nota não encontrada' });
-  }
-  
-  const { titulo, texto } = req.body;
-  
-  if (!titulo || !texto) {
-    return res.status(400).json({ error: 'Título e texto são obrigatórios' });
-  }
 
-  notes[index] = { 
-    ...notes[index], 
-    titulo, 
-    texto 
-  };
-  
-  writeNotes(notes);
-  res.json(notes[index]);
+  if (index >= 0) {
+    notes[index].titulo = req.body.titulo;
+    notes[index].texto = req.body.texto;
+
+    saveNotes(notes);
+    res.json(notes[index]);
+  } else {
+    res.status(404).json({ erro: 'Nota não encontrada' });
+  }
 });
 
+// ====================
+// DELETE - Excluir nota
+// ====================
 app.delete('/api/notes/:id', (req, res) => {
-  let notes = readNotes();
-  const initialLength = notes.length;
-  
-  notes = notes.filter(note => note.id !== req.params.id);
-  
-  if (notes.length === initialLength) {
-    return res.status(404).json({ error: 'Nota não encontrada' });
-  }
-  
-  writeNotes(notes);
-  res.status(204).send();
+  const notes = readNotes();
+
+  const novasNotas = notes.filter(n => n.id !== req.params.id);
+
+  saveNotes(novasNotas);
+
+  res.json({ mensagem: 'Nota removida' });
 });
 
-// Iniciar servidor
+// ====================
+// Inicia servidor
+// ====================
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  
-  // Criar arquivo notes.json se não existir
-  if (!fs.existsSync(DATA_FILE)) {
-    writeNotes([]);
-  }
+  console.log('Servidor rodando em http://localhost:3000');
 });
