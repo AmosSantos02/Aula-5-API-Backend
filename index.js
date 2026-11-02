@@ -51,7 +51,8 @@ app.post('/api/notes', (req, res) => {
   const novaNota = {
     id: Date.now().toString(),
     titulo: req.body.titulo,
-    texto: req.body.texto
+    texto: req.body.texto,
+    criadoEm: new Date().toISOString()
   };
 
   notes.push(novaNota);
